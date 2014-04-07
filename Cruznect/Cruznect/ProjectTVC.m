@@ -7,113 +7,313 @@
 //
 
 #import "ProjectTVC.h"
+#import "CruznectRequest.h"
+#import <MessageUI/MessageUI.h>
+#import "DescriptionViewController.h"
 
-@interface ProjectTVC ()
+#define NUMBER_OF_SECTIONS 4
+#define LOGO_AND_TITLE 0
+#define DETAILS 1
+#define REQUIREMENTS 2
+#define OWNER 3
+#define DELETION 4
 
+#define kLogoImageViewTag 100
+#define kTitleLabelTag 101
+#define kDetailTextViewTag 102
+#define kRequirementTitleTag 103
+#define kRequirementQuantityTag 104
+#define kOwnerLabelTag 105
+#define kCreatedTimeLabelTag 106
+#define kOwnerEmailTag 107
+
+#define kLogoAndTitleCellID @"Logo and Title"
+#define kDetailCellID @"Detail"
+#define kRequirementCellID @"Requirement"
+#define kOwnerCellID @"Owner"
+#define kEmailCellID @"Email"
+#define kTimeCreatedCellID @"Time Created"
+#define kLearnMoreCellID @"Learn More"
+#define kDeletionCellID @"Deletion"
+
+@interface ProjectTVC () <MFMailComposeViewControllerDelegate, UIAlertViewDelegate>
+@property (strong, nonatomic) NSArray *requirements;
+@property (strong, nonatomic) NSDictionary *owner;
+@property (strong, nonatomic) UIAlertView *deleteAlert;
 @end
 
 @implementation ProjectTVC
 
-- (id)initWithStyle:(UITableViewStyle)style
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
 {
-    self = [super initWithStyle:style];
-    if (self) {
-        // Custom initialization
-    }
-    return self;
+	if ([segue.identifier isEqualToString:@"Learn More"]) {
+		DescriptionViewController *descriptionVC = segue.destinationViewController;
+		
+		[descriptionVC setProject:self.project];
+	}
+}
+
+- (void)refresh
+{
+	NSString *projectID = [self.project objectForKey:PROJECT_ID];
+	[self.refreshControl beginRefreshing];
+	dispatch_queue_t fetchQ = dispatch_queue_create("Cruznect Fetch", NULL);
+    dispatch_async(fetchQ, ^{
+        self.requirements = [CruznectRequest fetchProjectRequirementsWithProjectID:projectID];
+		self.owner = [CruznectRequest fetchUserWithUserID:[self.project objectForKey:PROJECT_OWNER]];
+		dispatch_async(dispatch_get_main_queue(), ^{
+			[self.tableView reloadData];
+			[self.refreshControl endRefreshing];
+		});
+    });
 }
 
 - (void)viewDidLoad
 {
     [super viewDidLoad];
     
-    // Uncomment the following line to preserve selection between presentations.
-    // self.clearsSelectionOnViewWillAppear = NO;
-    
-    // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-    // self.navigationItem.rightBarButtonItem = self.editButtonItem;
+	[self.refreshControl addTarget:self
+                            action:@selector(refresh)
+                  forControlEvents:UIControlEventValueChanged];
+    [self refresh];
+	self.title = [self.project objectForKey:PROJECT_NAME];
 }
 
-- (void)didReceiveMemoryWarning
+NSString * const kDeleteAlertTitle = @"Delete Project";
+NSString * const kDeleteAlertMessage = @"Do you want to delete this project?";
+
+- (UIAlertView *)deleteAlert
 {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
+    if (!_deleteAlert) {
+        _deleteAlert = [[UIAlertView alloc] initWithTitle:kDeleteAlertTitle
+                                                  message:kDeleteAlertMessage
+                                                 delegate:self
+                                        cancelButtonTitle:@"Cancel"
+                                        otherButtonTitles:@"Delete", nil];
+    }
+    return _deleteAlert;
+}
+
+#pragma mark - UIAlerView Delegate
+
+- (void)alertView:(UIAlertView *)alertView
+clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if (alertView == self.deleteAlert) {
+        if (buttonIndex == 1) {
+            [self.delegate userDidDeleteProject:self.project];
+        }
+    } 
 }
 
 #pragma mark - Table view data source
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
-#warning Potentially incomplete method implementation.
-    // Return the number of sections.
-    return 0;
+	if (self.canDeleteProject) {
+		return NUMBER_OF_SECTIONS + 1;
+	}
+    return NUMBER_OF_SECTIONS;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-#warning Incomplete method implementation.
-    // Return the number of rows in the section.
-    return 0;
+	switch (section) {
+		case LOGO_AND_TITLE:
+			return 1;
+			break;
+		case DETAILS:
+			return 2;
+			break;
+		case REQUIREMENTS:
+			return [self.requirements count];
+			break;
+		case OWNER:
+			return 3;
+			break;
+		case DELETION:
+			if(self.canDeleteProject) return 1;
+			break;
+		default:
+			break;
+	}
+	return 0;
 }
 
-/*
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:<#@"reuseIdentifier"#> forIndexPath:indexPath];
-    
-    // Configure the cell...
-    
+	UITableViewCell *cell = nil;
+	
+    switch (indexPath.section) {
+		case LOGO_AND_TITLE: {
+			cell = [self.tableView dequeueReusableCellWithIdentifier:kLogoAndTitleCellID];
+			UIImageView *imageView = (UIImageView *)[cell viewWithTag:kLogoImageViewTag];
+			imageView.image = [CruznectRequest imageForProject:[self.project objectForKey:PROJECT_ID]];
+			UILabel *titleLabel = (UILabel *)[cell viewWithTag:kTitleLabelTag];
+			titleLabel.text = [self.project objectForKey:PROJECT_NAME];
+			break;
+		}
+		case DETAILS: {
+			if (indexPath.row == 0) {
+				cell = [self.tableView dequeueReusableCellWithIdentifier:kDetailCellID];
+				UITextView *textView = (UITextView *)[cell viewWithTag:kDetailTextViewTag];
+				textView.text = [self.project objectForKey:PROJECT_DESCRIPTION];
+			} else if (indexPath.row == 1)
+				cell = [self.tableView dequeueReusableCellWithIdentifier:kLearnMoreCellID];
+			break;
+		}
+		case REQUIREMENTS: {
+			cell = [self.tableView dequeueReusableCellWithIdentifier:kRequirementCellID];
+			UILabel *requirementTitleLabel = (UILabel *)[cell viewWithTag:kRequirementTitleTag];
+			UILabel *requirementQuantityLabel = (UILabel *)[cell viewWithTag:kRequirementQuantityTag];
+			
+			if (self.requirements) {
+				NSDictionary *requirement = [self.requirements objectAtIndex:indexPath.row];
+				requirementTitleLabel.text = [[requirement objectForKey:PROJECT_REQUIRE_TALENT_NAME] description];
+				requirementQuantityLabel.text = [[requirement objectForKey:PROJECT_REQUIRE_TALENT_QUANTITY] description];
+			} else {
+				requirementTitleLabel.text = @"N/A";
+				requirementQuantityLabel.text = @"N/A";
+			}
+			
+			break;
+		}
+		case OWNER: {
+			if (indexPath.row == 0) {
+				cell = [self.tableView dequeueReusableCellWithIdentifier:kOwnerCellID];
+				UILabel *ownerNameLabel = (UILabel *)[cell viewWithTag:kOwnerLabelTag];
+				ownerNameLabel.text = [self.owner objectForKey:USER_NAME];
+			} else if (indexPath.row == 1) {
+				cell = [self.tableView dequeueReusableCellWithIdentifier:kEmailCellID];
+				UILabel *emailLabel = (UILabel *)[cell viewWithTag:kOwnerEmailTag];
+				emailLabel.text = [self.owner objectForKey:USER_EMAIL];
+			} else if (indexPath.row == 2) {
+				cell = [self.tableView dequeueReusableCellWithIdentifier:kTimeCreatedCellID];
+				UILabel *timeCreatedLabel = (UILabel *)[cell viewWithTag:kCreatedTimeLabelTag];
+				timeCreatedLabel.text = [self.project objectForKey:PROJECT_CREATED_TIME];
+			}
+			break;
+		}
+		case DELETION: {
+			if (self.canDeleteProject) {
+				cell = [self.tableView dequeueReusableCellWithIdentifier:kDeletionCellID];
+			}
+			break;
+		}
+		default:
+			return nil;
+			break;
+	}
+	
     return cell;
 }
-*/
 
-/*
-// Override to support conditional editing of the table view.
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
 {
-    // Return NO if you do not want the specified item to be editable.
-    return YES;
+	switch (section) {
+		case LOGO_AND_TITLE:
+			return @"LOGO AND NAME";
+			break;
+		case DETAILS:
+			return @"DESCRIPTION";
+			break;
+		case REQUIREMENTS:
+			if ([self.requirements count] > 1) {
+				return @"PROJECT REQUIREMENTS";
+			} else {
+				return @"PROJECT REQUIREMENT";
+			}
+			break;
+		case OWNER:
+			return @"OWNER";
+			break;
+		default:
+			break;
+	}
+	
+	return @"";
 }
-*/
 
-/*
-// Override to support editing the table view.
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
+#pragma mark - UITableViewDelegate 
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    if (editingStyle == UITableViewCellEditingStyleDelete) {
-        // Delete the row from the data source
-        [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
-    } else if (editingStyle == UITableViewCellEditingStyleInsert) {
-        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-    }   
+	switch (indexPath.section) {
+		case LOGO_AND_TITLE:
+			return 132.0;
+			break;
+		case DETAILS:
+			if (indexPath.row == 0) {
+				return 132.0;
+			} else if (indexPath.row == 1) {
+				return 44.0;
+			}
+			break;
+		default:
+			break;
+	}
+	return 44;
 }
-*/
 
-/*
-// Override to support rearranging the table view.
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath
+- (void)tableView:(UITableView *)tableView didHighlightRowAtIndexPath:(NSIndexPath *)indexPath
 {
+	NSInteger section = indexPath.section;
+	NSInteger row = indexPath.row;
+	
+	/* Email */
+	if (section == OWNER && row == 1) {
+		[self displayFeedbackMailComposerSheet];
+	} else if (section == DELETION) {
+		if (self.canDeleteProject) {
+			[self.deleteAlert show];
+		}
+	}
 }
-*/
 
-/*
-// Override to support conditional rearranging of the table view.
-- (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath
+- (void)displayFeedbackMailComposerSheet
 {
-    // Return NO if you do not want the item to be re-orderable.
-    return YES;
+	if ([MFMailComposeViewController canSendMail]) {
+		MFMailComposeViewController *picker = [[MFMailComposeViewController alloc] init];
+		picker.mailComposeDelegate = self;
+		
+		NSString *subject = [NSString stringWithFormat:@"%@ Feedback", [self.project objectForKey:PROJECT_NAME]];
+		[picker setSubject:subject];
+		
+		NSArray *toRecipients = [NSArray arrayWithObject:[self.owner objectForKey:USER_EMAIL]];
+		[picker setToRecipients:toRecipients];
+		
+		[self presentViewController:picker animated:YES completion:NULL];
+	}
 }
-*/
 
-/*
-#pragma mark - Navigation
+#pragma mark - MFMailComposeViewControllerDelegate
 
-// In a storyboard-based application, you will often want to do a little preparation before navigation
-- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+- (void)mailComposeController:(MFMailComposeViewController*)controller
+          didFinishWithResult:(MFMailComposeResult)result error:(NSError*)error
 {
-    // Get the new view controller using [segue destinationViewController].
-    // Pass the selected object to the new view controller.
+	[self dismissViewControllerAnimated:YES completion:NULL];
 }
-*/
 
+#pragma mark - Share 
+
+- (void)displayActivityControllerWithDataObject:(id)obj
+{
+    UIActivityViewController *vc =
+	[[UIActivityViewController alloc] initWithActivityItems:@[obj]
+									  applicationActivities:nil];
+    [self presentViewController:vc
+					   animated:YES
+					 completion:^{
+						 //
+					 }];
+}
+
+- (IBAction)shareProject:(id)sender
+{
+	if (self.canDeleteProject) {
+		[self displayActivityControllerWithDataObject:[NSString stringWithFormat:@"Check out my project: %@!\n%@", [self.project objectForKey:PROJECT_NAME], [self.project objectForKey:PROJECT_DESCRIPTION]]];
+	} else {
+		[self displayActivityControllerWithDataObject:[NSString stringWithFormat:@"Check out this interesting project: %@!\n%@", [self.project objectForKey:PROJECT_NAME], [self.project objectForKey:PROJECT_DESCRIPTION]]];
+	}
+}
 @end

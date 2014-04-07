@@ -13,4 +13,6 @@
 #ifdef __OBJC__
 	#import <UIKit/UIKit.h>
 	#import <Foundation/Foundation.h>
+	#define BASE_URL @"http://169.254.71.149/"
 #endif
+

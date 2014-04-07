@@ -1,7 +1,7 @@
 
 <div id="header">
 	<div id="header_logo">
-		<a href="index.php"><img src="http://placehold.it/500x100&text=Project Slug" id="header_logo_image" style="margin-left:-100px;"/></a>
+		<a href="index.php"><img src="img/logo2.png" id="header_logo_image" style="margin-left:-100px;"/></a>
 	</div>
 	<div id="header_access">
 	<?if($_COOKIE['email']){?>
@@ -18,9 +18,11 @@
 			   			</label><br/>
 			   			<br/>
 			   			<!--This will be populated from the talents database-->
+			   			<div id="form_talents">
 			   			<? echo get_talents_form(); ?>
+			   			</div>
 			   			<div id="header_add_form_footer">
-				   			<input type="submit" value="Register!" />
+				   			<input type="submit" value="Register!"/>
 			   			</div>
 		   			</form>
 	   			</div>

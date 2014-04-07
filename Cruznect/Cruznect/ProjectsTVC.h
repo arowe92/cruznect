@@ -8,10 +8,12 @@
 
 #import <UIKit/UIKit.h>
 #import "CruznectRequest.h"
+#import "ProjectTVC.h"
 
 #define kImageViewTag 11
 #define kTitleTextLabelTag 22
 #define kDetailTextViewTag 33
+#define kTalentStringTag 44
 
 @interface ProjectsTVC : UITableViewController
 

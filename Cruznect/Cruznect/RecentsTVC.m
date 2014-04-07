@@ -8,7 +8,7 @@
 
 #import "RecentsTVC.h"
 
-@interface RecentsTVC ()
+@interface RecentsTVC () 
 
 @end
 
@@ -39,6 +39,17 @@
 	if ([[NSUserDefaults standardUserDefaults] objectForKey:@"login"]) {
 		[self refresh];
 	}
+}
+
+#pragma mark - ProjectTVC delegate
+
+- (void)userDidDeleteProject:(NSDictionary *)project
+{
+	NSLog(@"Fuck!");
+	NSString *projectID = [project objectForKey:PROJECT_ID];
+	[CruznectRequest deleteProject:projectID];
+	[self.navigationController popViewControllerAnimated:YES];
+	[self refresh];
 }
 
 @end

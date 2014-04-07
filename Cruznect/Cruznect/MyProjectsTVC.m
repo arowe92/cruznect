@@ -8,11 +8,24 @@
 
 #import "MyProjectsTVC.h"
 
-@interface MyProjectsTVC ()
+@interface MyProjectsTVC () <ProjectTVCDelegate>
 
 @end
 
 @implementation MyProjectsTVC
+
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+	if ([segue.identifier isEqualToString:@"Project"]) {
+		NSIndexPath *indexPath = [self.tableView indexPathForCell:sender];
+		NSDictionary *project = [self.projects objectAtIndex:indexPath.section];
+		
+		ProjectTVC *projectTVC = segue.destinationViewController;
+		[projectTVC setProject:project];
+		[projectTVC setDelegate:self];
+		[projectTVC setCanDeleteProject:YES];
+	}
+}
 
 - (void)refresh
 {
@@ -40,4 +53,21 @@
 		[self refresh];
 	}
 }
+
+#pragma mark - ProjectTVC delegate
+
+- (void)userDidDeleteProject:(NSDictionary *)project
+{
+	[self.navigationController popViewControllerAnimated:YES];
+	
+	dispatch_queue_t fetchQ = dispatch_queue_create("Cruznect Request", NULL);
+    dispatch_async(fetchQ, ^{
+		NSString *projectID = [project objectForKey:PROJECT_ID];
+        [CruznectRequest deleteProject:projectID];
+		dispatch_async(dispatch_get_main_queue(), ^{
+			[self refresh];
+		});
+    });
+}
+
 @end

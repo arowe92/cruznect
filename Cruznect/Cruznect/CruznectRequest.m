@@ -10,11 +10,9 @@
 
 @implementation CruznectRequest
 
-NSString * const baseScriptURLString = @"http://localhost/ver0.2/ver0.2/?";
-
 + (NSDictionary *)executeFetch:(NSString *)query
 {
-    query = [NSString stringWithFormat:@"%@%@", baseScriptURLString, query];
+    query = [NSString stringWithFormat:@"%@%@", BASE_URL, query];
     query = [query stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
     
     NSLog(@"[%@ %@] sent %@", NSStringFromClass([self class]), NSStringFromSelector(_cmd), query);
@@ -37,15 +35,36 @@ NSString * const baseScriptURLString = @"http://localhost/ver0.2/ver0.2/?";
 
 + (NSArray *)fetchAllProjectsWithUserID:(NSString *)userID
 {
-    NSString *requestString = @"action_type=project&action=fetch_all";
+    NSString *requestString = @"ver0.2/ver0.2/?action_type=project&action=fetch_all";
     return [[self executeFetch:requestString] valueForKey:@"response"];
 }
 
 + (NSArray *)fetchUserProjectsWithUserID:(NSString *)userID
 {
 	NSString *requestString =
-	[NSString stringWithFormat:@"action_type=project&action=fetch_user_project&user_id=%@", userID];
+	[NSString stringWithFormat:@"ver0.2/ver0.2/?action_type=project&action=fetch_user_project&user_id=%@", userID];
     return [[self executeFetch:requestString] valueForKey:@"response"];
+}
+
++ (NSArray *)fetchProjectRequirementsWithProjectID:(NSString *)projectID
+{
+	NSString *requestString =
+	[NSString stringWithFormat:@"ver0.2/ver0.2/?action_type=project&action=fetch_project_requirements&project_id=%@", projectID];
+    return [[self executeFetch:requestString] valueForKey:@"response"];
+}
+
++ (void)deleteProject:(NSString *)projectID
+{
+	NSString *requestString =
+	[NSString stringWithFormat:@"ver0.2/ver0.2/?action_type=project&action=delete_project&project_id=%@", projectID];
+    [self executeFetch:requestString];
+}
+
++ (NSDictionary *)fetchUserWithUserID:(NSString *)userID
+{
+	NSString *requestString =
+	[NSString stringWithFormat:@"ver0.2/ver0.2/?action_type=user&action=fetch_user&user_id=%@", userID];
+    return [[[self executeFetch:requestString] valueForKey:@"response"] objectAtIndex:0];
 }
 
 + (void)postProjectWithPorjectInfo

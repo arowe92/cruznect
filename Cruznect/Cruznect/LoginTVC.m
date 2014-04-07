@@ -38,11 +38,12 @@
 	[self.emailTextField becomeFirstResponder];
 }
 
-NSString * const kLoginScriptURLString = @"http://localhost/ver0.2/ver0.2/?action_type=user&action=login";
+NSString * const kLoginScriptURLString = @"ver0.2/ver0.2/?action_type=user&action=login";
 
 - (BOOL)executeRequestWithRequestBody:(NSString *)requestBody
 {
-    NSURL *reqeustURL = [NSURL URLWithString:kLoginScriptURLString];
+	NSString *urlString = [NSString stringWithFormat:@"%@%@", BASE_URL, kLoginScriptURLString];
+    NSURL *reqeustURL = [NSURL URLWithString:urlString];
     const char *requestBodyStr = [requestBody UTF8String];
     NSData *requestData = [NSData dataWithBytes:requestBodyStr length:strlen(requestBodyStr)];
     

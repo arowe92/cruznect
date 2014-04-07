@@ -37,12 +37,12 @@ $("#register").click(
 $("#login").click(
 	function(){
 		if($("#main_login_form").is(":visible")){
-			$("#main_login_form").show("slow");		
-			$("#main_register_form").hide("slow");	
+			$("#main_login_form").hide("slow");
+			$("#main_register_form").show("slow");	
 		}
 		else{
-			$("#main_login_form").hide("slow");
-			$("#main_register_form").show("slow");		
+			$("#main_login_form").show("slow");		
+			$("#main_register_form").hide("slow");		
 		}
 	}
 );

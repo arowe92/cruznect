@@ -1,7 +1,7 @@
 <?php 
 	include 'functions.php';
 
-	$id= $_POST['id'];
+	$id= $_GET['id'];
 
 	$query=sprintf("
 		UPDATE projects

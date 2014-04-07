@@ -4,7 +4,7 @@ function getSQL(){
 	$DB_NAME = "hackathon";
 	$DB_HOST = "127.0.0.1";
 	$DB_USER = "root";
-	$DB_PASS = "";
+	$DB_PASS = "root";
 	
 	return new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
 }
@@ -157,11 +157,11 @@ function print_rows($id){
 			<table class='main_content_table'>
 				<tr>
 					<td>
-						<img src='img/".$row["id"].".png' class='project_img'/>
+						<img src='".$row["imageURL"]."' class='project_img'/>
 					</td>
 					<td class='main_content_text'>
 					<h3> ".$row["name"]."</h3><br/>
-					".$row["description"]."
+					".substr($row["description"], 0, 100)."...
 					</td>
 					<td>".get_project_talents_tag($row["id"])."</td>
 					<td>
@@ -229,9 +229,6 @@ function get_project_talents($id){
 	
 	return "<table>
 				<tbody>
-					<tr>
-					".$top_row."					
-					</tr>
 					<tr>
 					".$bottom_row."
 					</tr>
@@ -303,11 +300,11 @@ function get_talents_form(){
 	$query = "SELECT * FROM talents";
 	$result = Query($query);
 	
-	$output = "";
+	$output = "<select style='width:90%; height:90; color:#666' name='talents[]' multiple>";
 	while ($row = $result->fetch_assoc()){
-		$output .= "<input type='checkbox' name='talents[]' value=".$row["id"].">".$row["name"]."<br/>";
+		$output .= "<option value=".$row["id"].">".$row["name"]."<br/>";
 	}
-	
+	$output .= "</select>";
 	return $output;	
 }
 
